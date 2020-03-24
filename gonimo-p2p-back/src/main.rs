@@ -27,6 +27,7 @@ use tokio::prelude::*;
 async fn main() -> std::io::Result<()> {
     let keypair = ed25519::Keypair::generate();
     let my_peer_id = PeerId::from_public_key(PublicKey::Ed25519(keypair.public()));
+    println!("Our peer id: {:?}", my_peer_id);
     let service = MdnsService::new().expect("Another mdns service already running?");
     async {
         println!("Before asking next");
@@ -34,7 +35,6 @@ async fn main() -> std::io::Result<()> {
         println!("Before loop");
 		loop {
             let (mut service, packet) = next;
-            println!("iteration");
             match packet {
                 MdnsPacket::Query(query) => {
                     println!("Query from {:?}", query.remote_addr());
@@ -55,6 +55,7 @@ async fn main() -> std::io::Result<()> {
                     }
                 }
                 MdnsPacket::ServiceDiscovery(disc) => {
+                    println!("Service discovery");
                     let resp = build_service_discovery_response(
                         disc.query_id(),
                         Duration::from_secs(120),
