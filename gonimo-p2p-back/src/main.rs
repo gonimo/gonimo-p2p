@@ -4,13 +4,13 @@ use libp2p_mdns:: {
         MdnsPacket,
         build_query_response,
         build_service_discovery_response
-    }
+    },
 };
 use libp2p::{
     identity::{ed25519, PublicKey},
     core::{
         PeerId
-    }
+    },
 };
 
 use tokio:: {
@@ -22,6 +22,19 @@ use tokio:: {
 use std::io::Error;
 use std::time::{Duration};
 use tokio::prelude::*;
+use pnet::datalink;
+use ipnetwork::{
+    Ipv4Network,
+    IpNetwork,
+};
+use std::net::{
+    IpAddr
+};
+use parity_multiaddr::{
+    Protocol,
+    Multiaddr
+};
+
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -37,11 +50,13 @@ async fn main() -> std::io::Result<()> {
             let (mut service, packet) = next;
             match packet {
                 MdnsPacket::Query(query) => {
+                    // Addresses might change over time - so re-query them everytime.
+                    let addrs = get_peer_addrs();
                     println!("Query from {:?}", query.remote_addr());
                     let resp = build_query_response(
                         query.query_id(),
                         my_peer_id.clone(),
-                        vec![].into_iter(),
+                        addrs.into_iter(),
                         Duration::from_secs(120),
                     ).unwrap();
                     service.enqueue_response(resp);
@@ -67,4 +82,18 @@ async fn main() -> std::io::Result<()> {
         }
 	}.await;
 	Ok(())
+}
+
+/// Get all available addresses of our endpoint.
+fn get_peer_addrs() -> Vec<Multiaddr> {
+    let raw_addrs = datalink::interfaces().into_iter().filter(|i| !i.is_loopback()).flat_map(|i| i.ips);
+    raw_addrs.map(|a| multi_addr_from_ip(a.ip())).collect()
+
+}
+
+/// Convert an `IpAddr` to a `MultiAddr` with a transport suitable for Gonimo signalling.
+fn multi_addr_from_ip(addr: IpAddr) -> Multiaddr {
+    Multiaddr::empty()
+        .with(Protocol::from(addr))
+        .with(Protocol::Udp(43286))
 }
