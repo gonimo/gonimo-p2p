@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 libp2p-mdns = { version = "0.22.0", path="../../rust-libp2p/protocols/mdns" }
 tokio = { version="0.2.13", features = [ "full" ] }
-libp2p = { version = "0.28.0", path = "../../rust-libp2p" }
+libp2p = { version = "0.29.0", path = "../../rust-libp2p" }
 pnet = "0.25.0"
-ipnetwork = "0.16.0"
 parity-multiaddr = { version = "0.9.0", path="../../rust-libp2p/misc/multiaddr" }
+pnet_datalink = "0.26.0"
