@@ -1,40 +1,19 @@
-use libp2p_mdns:: {
-    service::{
-        MdnsService,
-        MdnsPacket,
-        build_query_response,
-        build_service_discovery_response
-    },
-};
 use libp2p::{
+    core::PeerId,
     identity::{ed25519, PublicKey},
-    core::{
-        PeerId
-    },
+};
+use libp2p_mdns::service::{
+    build_query_response, build_service_discovery_response, MdnsPacket, MdnsService,
 };
 
-use tokio:: {
-    prelude::*,
-    stream::Stream,
-    stream::StreamExt,
-};
+use tokio::{prelude::*, stream::Stream, stream::StreamExt};
 
-use std::io::Error;
-use std::time::{Duration};
-use tokio::prelude::*;
+use parity_multiaddr::{Multiaddr, Protocol};
 use pnet::datalink;
-use ipnetwork::{
-    Ipv4Network,
-    IpNetwork,
-};
-use std::net::{
-    IpAddr
-};
-use parity_multiaddr::{
-    Protocol,
-    Multiaddr
-};
-
+use std::io::Error;
+use std::net::IpAddr;
+use std::time::Duration;
+use tokio::prelude::*;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -46,7 +25,7 @@ async fn main() -> std::io::Result<()> {
         println!("Before asking next");
         let mut next = service.next().await;
         println!("Before loop");
-		loop {
+        loop {
             let (mut service, packet) = next;
             match packet {
                 MdnsPacket::Query(query) => {
@@ -58,7 +37,8 @@ async fn main() -> std::io::Result<()> {
                         my_peer_id.clone(),
                         addrs.into_iter(),
                         Duration::from_secs(120),
-                    ).unwrap();
+                    )
+                    .unwrap();
                     service.enqueue_response(resp);
                 }
                 MdnsPacket::Response(response) => {
@@ -71,24 +51,25 @@ async fn main() -> std::io::Result<()> {
                 }
                 MdnsPacket::ServiceDiscovery(disc) => {
                     println!("Service discovery");
-                    let resp = build_service_discovery_response(
-                        disc.query_id(),
-                        Duration::from_secs(120),
-                    );
+                    let resp =
+                        build_service_discovery_response(disc.query_id(), Duration::from_secs(120));
                     service.enqueue_response(resp);
                 }
             }
             next = service.next().await;
         }
-	}.await;
-	Ok(())
+    }
+    .await;
+    Ok(())
 }
 
 /// Get all available addresses of our endpoint.
 fn get_peer_addrs() -> Vec<Multiaddr> {
-    let raw_addrs = datalink::interfaces().into_iter().filter(|i| !i.is_loopback()).flat_map(|i| i.ips);
+    let raw_addrs = datalink::interfaces()
+        .into_iter()
+        .filter(|i| !i.is_loopback())
+        .flat_map(|i| i.ips);
     raw_addrs.map(|a| multi_addr_from_ip(a.ip())).collect()
-
 }
 
 /// Convert an `IpAddr` to a `MultiAddr` with a transport suitable for Gonimo signalling.
